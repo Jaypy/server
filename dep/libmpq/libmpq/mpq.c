@@ -19,7 +19,7 @@
  */
 
 /* mpq-tools configuration includes. */
-//#include "config.h"
+#include "config.h"
 
 /* libmpq main includes. */
 #include "mpq.h"
@@ -41,8 +41,7 @@
 const char *libmpq__version(void) {
 
 	/* return version information. */
-    //Giperion Elysium: libmpq has several fixes, relative to x64 building
-	return "0.4.3_Elys";
+	return VERSION;
 }
 
 /* this function read a file and verify if it is a valid mpq archive, then it read and decrypt the hash table. */

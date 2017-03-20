@@ -151,5 +151,3 @@ add_library(shared STATIC
   ${shared_SRCS}
 )
 
-SET_TARGET_PROPERTIES (shared PROPERTIES FOLDER "Game Libs")
-

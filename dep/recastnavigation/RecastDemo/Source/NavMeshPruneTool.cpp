@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
-#include <vector>
 #include "SDL.h"
 #include "SDL_opengl.h"
 #include "imgui.h"
@@ -36,6 +35,43 @@
 #ifdef WIN32
 #	define snprintf _snprintf
 #endif
+
+
+
+// Copy/paste from Recast int array
+class PolyRefArray
+{
+	dtPolyRef* m_data;
+	int m_size, m_cap;
+	inline PolyRefArray(const PolyRefArray&);
+	inline PolyRefArray& operator=(const PolyRefArray&);
+public:
+	
+	inline PolyRefArray() : m_data(0), m_size(0), m_cap(0) {}
+	inline PolyRefArray(int n) : m_data(0), m_size(0), m_cap(0) { resize(n); }
+	inline ~PolyRefArray() { dtFree(m_data); }
+	void resize(int n)
+	{
+		if (n > m_cap)
+		{
+			if (!m_cap) m_cap = n;
+			while (m_cap < n) m_cap *= 2;
+			dtPolyRef* newData = (dtPolyRef*)dtAlloc(m_cap*sizeof(dtPolyRef), DT_ALLOC_TEMP);
+			if (m_size && newData) memcpy(newData, m_data, m_size*sizeof(dtPolyRef));
+			dtFree(m_data);
+			m_data = newData;
+		}
+		m_size = n;
+	}
+	inline void push(dtPolyRef item) { resize(m_size+1); m_data[m_size-1] = item; }
+	inline dtPolyRef pop() { if (m_size > 0) m_size--; return m_data[m_size]; }
+	inline const dtPolyRef& operator[](int i) const { return m_data[i]; }
+	inline dtPolyRef& operator[](int i) { return m_data[i]; }
+	inline int size() const { return m_size; }
+};
+
+
+
 
 class NavmeshFlags
 {
@@ -135,17 +171,13 @@ static void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, u
 	// If already visited, skip.
 	if (flags->getFlags(start))
 		return;
-
-	flags->setFlags(start, flag);
 		
-	std::vector<dtPolyRef> openList;
-	openList.push_back(start);
+	PolyRefArray openList;
+	openList.push(start);
 
 	while (openList.size())
 	{
-		const dtPolyRef ref = openList.back();
-		openList.pop_back();
-
+		const dtPolyRef ref = openList.pop();
 		// Get current poly and tile.
 		// The API input has been cheked already, skip checking internal data.
 		const dtMeshTile* tile = 0;
@@ -162,7 +194,7 @@ static void floodNavmesh(dtNavMesh* nav, NavmeshFlags* flags, dtPolyRef start, u
 			// Mark as visited
 			flags->setFlags(neiRef, flag);
 			// Visit neighbours
-			openList.push_back(neiRef);
+			openList.push(neiRef);
 		}
 	}
 }
@@ -188,7 +220,6 @@ static void disableUnvisitedPolys(dtNavMesh* nav, NavmeshFlags* flags)
 }
 
 NavMeshPruneTool::NavMeshPruneTool() :
-	m_sample(0),
 	m_flags(0),
 	m_hitPosSet(false)
 {
@@ -274,7 +305,7 @@ void NavMeshPruneTool::handleUpdate(const float /*dt*/)
 
 void NavMeshPruneTool::handleRender()
 {
-	duDebugDraw& dd = m_sample->getDebugDraw();
+	DebugDrawGL dd;
 
 	if (m_hitPosSet)
 	{

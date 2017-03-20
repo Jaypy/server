@@ -16,20 +16,38 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "DetourAssert.h"
+#ifndef SLIDESHOW_H
+#define SLIDESHOW_H
 
-#ifndef NDEBUG
+#include "Filelist.h"
 
-static dtAssertFailFunc* sAssertFailFunc = 0;
-
-void dtAssertFailSetCustom(dtAssertFailFunc *assertFailFunc)
+class SlideShow
 {
-	sAssertFailFunc = assertFailFunc;
-}
+	FileList m_files;
+	char m_path[256];
 
-dtAssertFailFunc* dtAssertFailGetCustom()
-{
-	return sAssertFailFunc;
-}
+	int m_width;
+	int m_height;
+	unsigned int m_texId;
 
-#endif
+	void purgeImage();
+	bool loadImage(const char* path);
+
+	bool m_showSlides;
+	bool m_showCurSlide;
+	float m_slideAlpha;
+	int m_curSlide;
+	int m_nextSlide;
+	
+public:
+	SlideShow();
+	~SlideShow();
+
+	bool init(const char* path);
+	void nextSlide();
+	void prevSlide();
+	void setSlide(int n);
+	void updateAndDraw(float dt, const float w, const float h);
+};
+
+#endif // SLIDESHOW_H

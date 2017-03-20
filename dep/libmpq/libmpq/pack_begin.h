@@ -25,7 +25,6 @@
 #endif
 
 #ifdef _MSC_VER
-  #pragma warning(disable:4103)
   #pragma pack(push,1)
   #define PACK_STRUCT
 #else

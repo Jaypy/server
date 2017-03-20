@@ -19,6 +19,8 @@
 #ifndef DETOURNAVMESH_H
 #define DETOURNAVMESH_H
 
+#include <cstddef>
+
 #include "DetourAlloc.h"
 #include "DetourStatus.h"
 
@@ -118,10 +120,11 @@ enum dtStraightPathOptions
 };
 
 
-/// Options for dtNavMeshQuery::initSlicedFindPath and updateSlicedFindPath
+/// Options for dtNavMeshQuery::findPath
 enum dtFindPathOptions
 {
-	DT_FINDPATH_ANY_ANGLE	= 0x02,		///< use raycasts during pathfind to "shortcut" (raycast still consider costs)
+	DT_FINDPATH_LOW_QUALITY_FAR = 0x01,		///< [provisional] trade quality for performance far from the origin. The idea is that by then a new query will be issued
+	DT_FINDPATH_ANY_ANGLE	= 0x02,			///< use raycasts during pathfind to "shortcut" (raycast still consider costs)
 };
 
 /// Options for dtNavMeshQuery::raycast
@@ -145,7 +148,7 @@ enum dtPolyTypes
 };
 
 
-/// Defines a polygon within a dtMeshTile object.
+/// Defines a polyogn within a dtMeshTile object.
 /// @ingroup detour
 struct dtPoly
 {
@@ -300,9 +303,6 @@ struct dtMeshTile
 	int dataSize;							///< Size of the tile data.
 	int flags;								///< Tile flags. (See: #dtTileFlags)
 	dtMeshTile* next;						///< The next free tile, or the next tile in the spatial grid.
-private:
-	dtMeshTile(const dtMeshTile&);
-	dtMeshTile& operator=(const dtMeshTile&);
 };
 
 /// Configuration parameters used to define multi-tile navigation meshes.
@@ -377,7 +377,7 @@ public:
 	///  @param[in]	y		The tile's y-location. (x, y, layer)
 	///  @param[in]	layer	The tile's layer. (x, y, layer)
 	/// @return The tile, or null if the tile does not exist.
-	const dtMeshTile* getTileAt(const int x, const int y, const int layer) const;
+	const dtMeshTile* getTileAt(const int x, const int y, const int layer = 0) const;
 
 	/// Gets all tiles at the specified grid location. (All layers.)
 	///  @param[in]		x			The tile's x-location. (x, y)
@@ -594,9 +594,6 @@ public:
 	/// @}
 	
 private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	dtNavMesh(const dtNavMesh&);
-	dtNavMesh& operator=(const dtNavMesh&);
 
 	/// Returns pointer to tile in the tile array.
 	dtMeshTile* getTile(int i);
@@ -625,7 +622,7 @@ private:
 	void connectExtOffMeshLinks(dtMeshTile* tile, dtMeshTile* target, int side);
 	
 	/// Removes external links at specified side.
-	void unconnectLinks(dtMeshTile* tile, dtMeshTile* target);
+	void unconnectExtLinks(dtMeshTile* tile, dtMeshTile* target);
 	
 
 	// TODO: These methods are duplicates from dtNavMeshQuery, but are needed for off-mesh connection finding.
@@ -637,7 +634,7 @@ private:
 	dtPolyRef findNearestPolyInTile(const dtMeshTile* tile, const float* center,
 									const float* extents, float* nearestPt) const;
 	/// Returns closest point on polygon.
-	void closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly) const;
+	void closestPointOnPoly(dtPolyRef ref, const float* pos, float* closest, bool* posOverPoly = NULL) const;
 	
 	dtNavMeshParams m_params;			///< Current initialization params. TODO: do not store this info twice.
 	float m_orig[3];					///< Origin of the tile (0,0)

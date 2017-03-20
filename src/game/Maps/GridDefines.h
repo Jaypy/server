@@ -157,9 +157,7 @@ namespace MaNGOS
 
         int x_val = int(x_offset+CENTER_VAL + 0.5);
         int y_val = int(y_offset+CENTER_VAL + 0.5);
-
-        // Giperion Elysium: yes it's reversed. In fact, it's a true grid coord as WoW it handles
-        return RET_TYPE(y_val, x_val);
+        return RET_TYPE(x_val, y_val);
     }
 
     inline GridPair ComputeGridPair(float x, float y)
