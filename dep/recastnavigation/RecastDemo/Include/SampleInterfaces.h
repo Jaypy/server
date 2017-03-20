@@ -30,7 +30,7 @@
 class BuildContext : public rcContext
 {
 	TimeVal m_startTime[RC_MAX_TIMERS];
-	TimeVal m_accTime[RC_MAX_TIMERS];
+	int m_accTime[RC_MAX_TIMERS];
 
 	static const int MAX_MESSAGES = 1000;
 	const char* m_messages[MAX_MESSAGES];
@@ -41,6 +41,7 @@ class BuildContext : public rcContext
 	
 public:
 	BuildContext();
+	virtual ~BuildContext();
 	
 	/// Dumps the log to stdout.
 	void dumpLog(const char* format, ...);
@@ -53,11 +54,11 @@ protected:
 	/// Virtual functions for custom implementations.
 	///@{
 	virtual void doResetLog();
-	virtual void doLog(const rcLogCategory category, const char* msg, const int len);
+	virtual void doLog(const rcLogCategory /*category*/, const char* /*msg*/, const int /*len*/);
 	virtual void doResetTimers();
-	virtual void doStartTimer(const rcTimerLabel label);
-	virtual void doStopTimer(const rcTimerLabel label);
-	virtual int doGetAccumulatedTime(const rcTimerLabel label) const;
+	virtual void doStartTimer(const rcTimerLabel /*label*/);
+	virtual void doStopTimer(const rcTimerLabel /*label*/);
+	virtual int doGetAccumulatedTime(const rcTimerLabel /*label*/) const;
 	///@}
 };
 
@@ -89,10 +90,6 @@ public:
 	virtual bool isReading() const;
 	virtual bool write(const void* ptr, const size_t size);
 	virtual bool read(void* ptr, const size_t size);
-private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	FileIO(const FileIO&);
-	FileIO& operator=(const FileIO&);
 };
 
 #endif // SAMPLEINTERFACES_H

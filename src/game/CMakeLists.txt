@@ -549,8 +549,6 @@ add_library(game STATIC
   ${game_SRCS}
 )
 
-SET_TARGET_PROPERTIES (game PROPERTIES FOLDER "Game Libs")
-
 target_link_libraries(game
   shared
   detour

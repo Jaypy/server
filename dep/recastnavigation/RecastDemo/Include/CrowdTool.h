@@ -104,11 +104,6 @@ public:
 	void updateTick(const float dt);
 
 	inline CrowdToolParams* getToolParams() { return &m_toolParams; }
-	
-private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	CrowdToolState(const CrowdToolState&);
-	CrowdToolState& operator=(const CrowdToolState&);
 };
 
 
@@ -126,8 +121,12 @@ class CrowdTool : public SampleTool
 	};
 	ToolMode m_mode;
 	
+	void updateAgentParams();
+	void updateTick(const float dt);
+	
 public:
 	CrowdTool();
+	virtual ~CrowdTool();
 	
 	virtual int type() { return TOOL_CROWD; }
 	virtual void init(Sample* sample);

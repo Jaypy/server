@@ -44,7 +44,7 @@ static int sweepCircleCircle(const float* c0, const float r0, const float* v,
 	float d = b*b - a*c;
 	if (d < 0.0f) return 0; // no intersection.
 	a = 1.0f / a;
-	const float rd = dtMathSqrtf(d);
+	const float rd = dtSqrt(d);
 	tmin = (b - rd) * a;
 	tmax = (b + rd) * a;
 	return 1;
@@ -58,7 +58,7 @@ static int isectRaySeg(const float* ap, const float* u,
 	dtVsub(v,bq,bp);
 	dtVsub(w,ap,bp);
 	float d = dtVperp2D(u,v);
-	if (dtMathFabsf(d) < 1e-6f) return 0;
+	if (dtMathFabs(d) < 1e-6f) return 0;
 	d = 1.0f/d;
 	t = dtVperp2D(v,w) * d;
 	if (t < 0 || t > 1) return 0;
@@ -207,9 +207,6 @@ void dtFreeObstacleAvoidanceQuery(dtObstacleAvoidanceQuery* ptr)
 
 
 dtObstacleAvoidanceQuery::dtObstacleAvoidanceQuery() :
-	m_invHorizTime(0),
-	m_vmax(0),
-	m_invVmax(0),
 	m_maxCircles(0),
 	m_circles(0),
 	m_ncircles(0),
@@ -265,7 +262,7 @@ void dtObstacleAvoidanceQuery::addCircle(const float* pos, const float rad,
 
 void dtObstacleAvoidanceQuery::addSegment(const float* p, const float* q)
 {
-	if (m_nsegments >= m_maxSegments)
+	if (m_nsegments > m_maxSegments)
 		return;
 	
 	dtObstacleSegment* seg = &m_segments[m_nsegments++];
@@ -284,7 +281,7 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 		const float* pa = pos;
 		const float* pb = cir->p;
 		
-		const float orig[3] = {0,0,0};
+		const float orig[3] = {0,0};
 		float dv[3];
 		dtVsub(cir->dp,pb,pa);
 		dtVnormalize(cir->dp);
@@ -314,30 +311,11 @@ void dtObstacleAvoidanceQuery::prepare(const float* pos, const float* dvel)
 	}	
 }
 
-
-/* Calculate the collision penalty for a given velocity vector
- * 
- * @param vcand sampled velocity
- * @param dvel desired velocity
- * @param minPenalty threshold penalty for early out
- */
 float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs,
 											  const float* pos, const float rad,
 											  const float* vel, const float* dvel,
-											  const float minPenalty,
 											  dtObstacleAvoidanceDebugData* debug)
 {
-	// penalty for straying away from the desired and current velocities
-	const float vpen = m_params.weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
-	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
-
-	// find the threshold hit time to bail out based on the early out penalty
-	// (see how the penalty is calculated below to understnad)
-	float minPen = minPenalty - vpen - vcpen;
-	float tThresold = (m_params.weightToi / minPen - 0.1f) * m_params.horizTime;
-	if (tThresold - m_params.horizTime > -FLT_EPSILON)
-		return minPenalty; // already too much
-
 	// Find min time of impact and exit amongst all obstacles.
 	float tmin = m_params.horizTime;
 	float side = 0;
@@ -372,11 +350,7 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		{
 			// The closest obstacle is somewhere ahead of us, keep track of nearest obstacle.
 			if (htmin < tmin)
-			{
 				tmin = htmin;
-				if (tmin < tThresold)
-					return minPenalty;
-			}
 		}
 	}
 
@@ -409,17 +383,15 @@ float dtObstacleAvoidanceQuery::processSample(const float* vcand, const float cs
 		
 		// The closest obstacle is somewhere ahead of us, keep track of nearest obstacle.
 		if (htmin < tmin)
-		{
 			tmin = htmin;
-			if (tmin < tThresold)
-				return minPenalty;
-		}
 	}
 	
 	// Normalize side bias, to prevent it dominating too much.
 	if (nside)
 		side /= nside;
 	
+	const float vpen = m_params.weightDesVel * (dtVdist2D(vcand, dvel) * m_invVmax);
+	const float vcpen = m_params.weightCurVel * (dtVdist2D(vcand, vel) * m_invVmax);
 	const float spen = m_params.weightSide * side;
 	const float tpen = m_params.weightToi * (1.0f/(0.1f+tmin*m_invHorizTime));
 	
@@ -442,7 +414,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(const float* pos, const float r
 	memcpy(&m_params, params, sizeof(dtObstacleAvoidanceParams));
 	m_invHorizTime = 1.0f / m_params.horizTime;
 	m_vmax = vmax;
-	m_invVmax = vmax > 0 ? 1.0f / vmax : FLT_MAX;
+	m_invVmax = 1.0f / vmax;
 	
 	dtVset(nvel, 0,0,0);
 	
@@ -468,7 +440,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(const float* pos, const float r
 			
 			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+cs/2)) continue;
 			
-			const float penalty = processSample(vcand, cs, pos,rad,vel,dvel, minPenalty, debug);
+			const float penalty = processSample(vcand, cs, pos,rad,vel,dvel, debug);
 			ns++;
 			if (penalty < minPenalty)
 			{
@@ -482,28 +454,6 @@ int dtObstacleAvoidanceQuery::sampleVelocityGrid(const float* pos, const float r
 }
 
 
-// vector normalization that ignores the y-component.
-inline void dtNormalize2D(float* v)
-{
-	float d = dtMathSqrtf(v[0] * v[0] + v[2] * v[2]);
-	if (d==0)
-		return;
-	d = 1.0f / d;
-	v[0] *= d;
-	v[2] *= d;
-}
-
-// vector normalization that ignores the y-component.
-inline void dtRorate2D(float* dest, const float* v, float ang)
-{
-	float c = cosf(ang);
-	float s = sinf(ang);
-	dest[0] = v[0]*c - v[2]*s;
-	dest[2] = v[0]*s + v[2]*c;
-	dest[1] = v[1];
-}
-
-
 int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const float rad, const float vmax,
 													 const float* vel, const float* dvel, float* nvel,
 													 const dtObstacleAvoidanceParams* params,
@@ -514,7 +464,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	memcpy(&m_params, params, sizeof(dtObstacleAvoidanceParams));
 	m_invHorizTime = 1.0f / m_params.horizTime;
 	m_vmax = vmax;
-	m_invVmax = vmax > 0 ? 1.0f / vmax : FLT_MAX;
+	m_invVmax = 1.0f / vmax;
 	
 	dtVset(nvel, 0,0,0);
 	
@@ -532,15 +482,8 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	const int nd = dtClamp(ndivs, 1, DT_MAX_PATTERN_DIVS);
 	const int nr = dtClamp(nrings, 1, DT_MAX_PATTERN_RINGS);
 	const float da = (1.0f/nd) * DT_PI*2;
-	const float ca = cosf(da);
-	const float sa = sinf(da);
-
-	// desired direction
-	float ddir[6];
-	dtVcopy(ddir, dvel);
-	dtNormalize2D(ddir);
-	dtRorate2D (ddir+3, ddir, da*0.5f); // rotated by da/2
-
+	const float dang = dtMathAtan2f(dvel[2], dvel[0]);
+	
 	// Always add sample at zero
 	pat[npat*2+0] = 0;
 	pat[npat*2+1] = 0;
@@ -549,34 +492,15 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	for (int j = 0; j < nr; ++j)
 	{
 		const float r = (float)(nr-j)/(float)nr;
-		pat[npat*2+0] = ddir[(j%2)*3] * r;
-		pat[npat*2+1] = ddir[(j%2)*3+2] * r;
-		float* last1 = pat + npat*2;
-		float* last2 = last1;
-		npat++;
-
-		for (int i = 1; i < nd-1; i+=2)
+		float a = dang + (j&1)*0.5f*da;
+		for (int i = 0; i < nd; ++i)
 		{
-			// get next point on the "right" (rotate CW)
-			pat[npat*2+0] = last1[0]*ca + last1[1]*sa;
-			pat[npat*2+1] = -last1[0]*sa + last1[1]*ca;
-			// get next point on the "left" (rotate CCW)
-			pat[npat*2+2] = last2[0]*ca - last2[1]*sa;
-			pat[npat*2+3] = last2[0]*sa + last2[1]*ca;
-
-			last1 = pat + npat*2;
-			last2 = last1 + 2;
-			npat += 2;
-		}
-
-		if ((nd&1) == 0)
-		{
-			pat[npat*2+2] = last2[0]*ca - last2[1]*sa;
-			pat[npat*2+3] = last2[0]*sa + last2[1]*ca;
+			pat[npat*2+0] = cosf(a)*r;
+			pat[npat*2+1] = sinf(a)*r;
 			npat++;
+			a += da;
 		}
 	}
-
 
 	// Start sampling.
 	float cr = vmax * (1.0f - m_params.velBias);
@@ -599,7 +523,7 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 			
 			if (dtSqr(vcand[0])+dtSqr(vcand[2]) > dtSqr(vmax+0.001f)) continue;
 			
-			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, minPenalty, debug);
+			const float penalty = processSample(vcand,cr/10, pos,rad,vel,dvel, debug);
 			ns++;
 			if (penalty < minPenalty)
 			{
@@ -617,3 +541,4 @@ int dtObstacleAvoidanceQuery::sampleVelocityAdaptive(const float* pos, const flo
 	
 	return ns;
 }
+

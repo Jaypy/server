@@ -17,6 +17,3 @@
 
 add_subdirectory(src)
 add_subdirectory(recastnavigation)
-if (USE_EXTRACTORS)
-	add_subdirectory(libmpq)
-endif()

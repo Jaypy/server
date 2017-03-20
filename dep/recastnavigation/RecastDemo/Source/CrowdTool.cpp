@@ -23,11 +23,6 @@
 #include <float.h>
 #include "SDL.h"
 #include "SDL_opengl.h"
-#ifdef __APPLE__
-#	include <OpenGL/glu.h>
-#else
-#	include <GL/glu.h>
-#endif
 #include "imgui.h"
 #include "CrowdTool.h"
 #include "InputGeom.h"
@@ -42,6 +37,7 @@
 #ifdef WIN32
 #	define snprintf _snprintf
 #endif
+
 
 static bool isectSegAABB(const float* sp, const float* sq,
 						 const float* amin, const float* amax,
@@ -203,7 +199,7 @@ void CrowdToolState::reset()
 
 void CrowdToolState::handleRender()
 {
-	duDebugDraw& dd = m_sample->getDebugDraw();
+	DebugDrawGL dd;
 	const float rad = m_sample->getAgentRadius();
 	
 	dtNavMesh* nav = m_sample->getNavMesh();
@@ -854,7 +850,7 @@ void CrowdToolState::updateTick(const float dt)
 	m_agentDebug.vod->normalizeSamples();
 	
 	m_crowdSampleCount.addSample((float)crowd->getVelocitySampleCount());
-	m_crowdTotalTime.addSample(getPerfTimeUsec(endTime - startTime) / 1000.0f);
+	m_crowdTotalTime.addSample(getPerfDeltaTimeUsec(startTime, endTime) / 1000.0f);
 }
 
 
@@ -864,6 +860,10 @@ CrowdTool::CrowdTool() :
 	m_sample(0),
 	m_state(0),
 	m_mode(TOOLMODE_CREATE)
+{
+}
+
+CrowdTool::~CrowdTool()
 {
 }
 

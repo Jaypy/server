@@ -27,6 +27,6 @@ typedef __int64 TimeVal;
 #endif
 
 TimeVal getPerfTime();
-int getPerfTimeUsec(const TimeVal duration);
+int getPerfDeltaTimeUsec(const TimeVal start, const TimeVal end);
 
 #endif // PERFTIMER_H

@@ -99,7 +99,7 @@ size_t MPQFile::read(void* dest, size_t bytes)
 {
     if (eof) return 0;
 
-    libmpq__off_t rpos = static_cast <libmpq__off_t> (pointer + bytes);
+    size_t rpos = pointer + bytes;
     if (rpos > size)
     {
         bytes = size - pointer;

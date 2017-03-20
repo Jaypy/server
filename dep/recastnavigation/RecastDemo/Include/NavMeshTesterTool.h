@@ -94,6 +94,7 @@ class NavMeshTesterTool : public SampleTool
 	
 public:
 	NavMeshTesterTool();
+	~NavMeshTesterTool();
 
 	virtual int type() { return TOOL_NAVMESH_TESTER; }
 	virtual void init(Sample* sample);

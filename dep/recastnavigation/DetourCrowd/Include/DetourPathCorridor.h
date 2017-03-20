@@ -131,12 +131,7 @@ public:
 
 	/// The number of polygons in the current corridor path.
 	/// @return The number of polygons in the current corridor path.
-	inline int getPathCount() const { return m_npath; }
-
-private:
-	// Explicitly disabled copy constructor and copy assignment operator.
-	dtPathCorridor(const dtPathCorridor&);
-	dtPathCorridor& operator=(const dtPathCorridor&);
+	inline int getPathCount() const { return m_npath; } 	
 };
 
 int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPath,

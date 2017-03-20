@@ -17,7 +17,6 @@
 #
 set(detour_SRCS
     DetourAlloc.cpp
-	DetourAssert.cpp
     DetourCommon.cpp
     DetourNavMeshBuilder.cpp
     DetourNavMesh.cpp
@@ -35,5 +34,3 @@ include_directories(
 add_library(detour STATIC
   ${detour_SRCS}
 )
-
-SET_TARGET_PROPERTIES (detour PROPERTIES FOLDER "3rd Party")
